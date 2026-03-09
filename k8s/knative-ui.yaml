@@ -1,0 +1,42 @@
+# -------------------------------------------------------------------
+# Knative Service for Streamlit UI (ltt-lca-ui).
+#
+# Lightweight -- only needs API_URL (non-sensitive).
+# Lower concurrency since Streamlit is not fully async.
+# -------------------------------------------------------------------
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: ltt-lca-ui
+  namespace: ltt-lca-prod
+  labels:
+    app: ltt-cloud
+    component: ui
+  annotations:
+    autoscaling.knative.dev/minScale: "0"
+    autoscaling.knative.dev/maxScale: "10"
+spec:
+  template:
+    metadata:
+      labels:
+        app: ltt-cloud
+        component: ui
+    spec:
+      containerConcurrency: 5
+      containers:
+        - image: registry.k8s.eonerc.rwth-aachen.de/ltt-lca/ui:latest
+          ports:
+            - containerPort: 8501
+          env:
+            - name: API_URL
+              value: "http://ltt-lca-api.ltt-lca-prod.svc.cluster.local:8000"
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+  traffic:
+    - latestRevision: true
+      percent: 100

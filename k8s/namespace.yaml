@@ -1,0 +1,7 @@
+# Namespace for LTT LCA workloads
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ltt-lca
+  labels:
+    app: ltt-cloud

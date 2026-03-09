@@ -1,0 +1,62 @@
+# -------------------------------------------------------------------
+# docker-compose.yml -- LOCAL DEVELOPMENT ONLY
+#
+# All sensitive values are read from .env (gitignored).
+# In production the same env vars are provided by Kubernetes Secrets.
+# See SECURITY.md for the full secret flow.
+# -------------------------------------------------------------------
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "8000:8000"
+
+  ui:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ui
+    env_file:
+      - .env
+    depends_on:
+      - api
+    ports:
+      - "8501:8501"
+
+  pwa:
+    image: nginx:alpine
+    volumes:
+      - ./src/pwa:/usr/share/nginx/html:ro
+      - ./public/icons:/usr/share/nginx/html/icons:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - ui
+    ports:
+      - "8080:80"
+
+volumes:
+  postgres_data:

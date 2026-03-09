@@ -1,0 +1,5 @@
+# TruffleHog false-positive exclusions for CI test fixtures.
+# These patterns only match the throwaway credentials used inside
+# the GitHub Actions MSSQL service container and test JWT key.
+MSSQL_CONNECTION_STRING=.*localhost.*1433.*
+JWT_SECRET_KEY=test.*

@@ -1,0 +1,36 @@
+# Streamlit UI -- receives API_URL from ConfigMap/Secret.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ui
+  namespace: ltt-lca
+  labels:
+    app: ltt-cloud
+    component: ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: ui
+  template:
+    metadata:
+      labels:
+        app: ltt-cloud
+        component: ui
+    spec:
+      containers:
+        - name: ui
+          image: ltt-cloud-ui:latest
+          ports:
+            - containerPort: 8501
+          env:
+            - name: API_URL
+              value: "http://api:8000"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi

@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug FastAPI",
+            "type": "python",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": ["api.main:app", "--reload"],
+            "cwd": "${workspaceFolder}/src"
+        },
+        {
+            "name": "Debug Streamlit",
+            "type": "python",
+            "request": "launch",
+            "module": "streamlit",
+            "args": ["run", "ui/app.py"],
+            "cwd": "${workspaceFolder}/src"
+        }
+    ]
+}

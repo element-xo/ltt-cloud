@@ -1,0 +1,49 @@
+# FastAPI backend -- all secrets injected from ltt-cloud-secrets.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: ltt-lca
+  labels:
+    app: ltt-cloud
+    component: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      component: api
+  template:
+    metadata:
+      labels:
+        app: ltt-cloud
+        component: api
+    spec:
+      containers:
+        - name: api
+          image: ltt-cloud-api:latest
+          ports:
+            - containerPort: 8000
+          # All sensitive env vars come from the Secret object.
+          envFrom:
+            - secretRef:
+                name: ltt-cloud-secrets
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 15

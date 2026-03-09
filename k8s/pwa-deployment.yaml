@@ -1,0 +1,33 @@
+# PWA shell -- static content served by Nginx, no secrets needed.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pwa
+  namespace: ltt-lca
+  labels:
+    app: ltt-cloud
+    component: pwa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: pwa
+  template:
+    metadata:
+      labels:
+        app: ltt-cloud
+        component: pwa
+    spec:
+      containers:
+        - name: pwa
+          image: ltt-cloud-pwa:latest
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi

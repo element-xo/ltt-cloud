@@ -1,0 +1,42 @@
+# -------------------------------------------------------------------
+# Ingress for external access on RWTH Kubernetes.
+# Routes:
+#   /     -> PWA (static Nginx shell)
+#   /api  -> FastAPI backend (Knative service ltt-lca-api)
+#   /app  -> Streamlit UI (Knative service ltt-lca-ui)
+# -------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ltt-lca-ingress
+  namespace: ltt-lca-prod
+  labels:
+    app: ltt-cloud
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - host: ltt-lca.k8s.eonerc.rwth-aachen.de
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ltt-lca-pwa
+                port:
+                  number: 80
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: ltt-lca-api
+                port:
+                  number: 8000
+          - path: /app
+            pathType: Prefix
+            backend:
+              service:
+                name: ltt-lca-ui
+                port:
+                  number: 8501

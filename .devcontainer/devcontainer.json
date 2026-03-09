@@ -1,0 +1,11 @@
+{
+    "name": "LTT Cloud Dev",
+    "build": {
+        "dockerfile": "../docker/Dockerfile.dev"
+    },
+    "workspaceFolder": "/workspace",
+    "extensions": [
+        "ms-python.python",
+        "ms-python.black-formatter"
+    ]
+}

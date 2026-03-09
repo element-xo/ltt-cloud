@@ -1,0 +1,159 @@
+# -------------------------------------------------------------------
+# Deploy to RWTH Knative (Kubernetes PaaS)
+#
+# Triggers on push to main. Builds, tests, pushes images to RWTH
+# container registry, and deploys API + UI as Knative Services.
+# PWA stays as a regular Deployment (static Nginx).
+#
+# Required GitHub Secrets:
+#   RWTH_KUBECONFIG       -- base64-encoded kubeconfig for RWTH K8s
+#   RWTH_REGISTRY_USER    -- container registry login
+#   RWTH_REGISTRY_TOKEN   -- container registry password
+#   MSSQL_PROD_URL        -- production DB connection string
+#   REDIS_PROD_URL        -- production Redis connection string
+#   JWT_SECRET_PROD       -- production JWT signing key
+# -------------------------------------------------------------------
+name: Deploy to RWTH Knative
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY: registry.k8s.eonerc.rwth-aachen.de
+  NAMESPACE: ltt-lca-prod
+
+jobs:
+  # ------------------------------------------------------------------
+  # Build + Test
+  # ------------------------------------------------------------------
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run tests
+        run: pytest tests/ -v
+
+      - name: Login to RWTH Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.RWTH_REGISTRY_USER }}
+          password: ${{ secrets.RWTH_REGISTRY_TOKEN }}
+
+      - name: Build and Push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.api
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/ltt-lca/api:${{ github.sha }}
+            ${{ env.REGISTRY }}/ltt-lca/api:latest
+
+      - name: Build and Push UI image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.ui
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/ltt-lca/ui:${{ github.sha }}
+            ${{ env.REGISTRY }}/ltt-lca/ui:latest
+
+  # ------------------------------------------------------------------
+  # Deploy to Knative on RWTH Kubernetes
+  # ------------------------------------------------------------------
+  deploy-knative:
+    needs: build-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup kn CLI
+        uses: redhat-actions/install-kn@v1
+        with:
+          version: "v1.13.2"
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "v1.30.0"
+
+      - name: Configure RWTH K8s access
+        run: |
+          echo "${{ secrets.RWTH_KUBECONFIG }}" | base64 -d > kubeconfig
+          chmod 600 kubeconfig
+          export KUBECONFIG=kubeconfig
+
+          kubectl get nodes
+          kubectl get ns | grep ${{ env.NAMESPACE }} \
+            || kubectl create ns ${{ env.NAMESPACE }}
+
+      - name: Deploy API (Knative Service)
+        uses: redhat-actions/kn-service-manager@v1
+        with:
+          service_name: ltt-lca-api
+          container_image: ${{ env.REGISTRY }}/ltt-lca/api:${{ github.sha }}
+          namespace: ${{ env.NAMESPACE }}
+          kn_extra_args: |
+            --min-scale=0
+            --max-scale=20
+            --env DATABASE_URL=${{ secrets.MSSQL_PROD_URL }}
+            --env REDIS_URL=${{ secrets.REDIS_PROD_URL }}
+            --env JWT_SECRET_KEY=${{ secrets.JWT_SECRET_PROD }}
+
+      - name: Deploy UI (Knative Service)
+        uses: redhat-actions/kn-service-manager@v1
+        with:
+          service_name: ltt-lca-ui
+          container_image: ${{ env.REGISTRY }}/ltt-lca/ui:${{ github.sha }}
+          namespace: ${{ env.NAMESPACE }}
+          kn_extra_args: |
+            --min-scale=0
+            --max-scale=10
+            --env API_URL=http://ltt-lca-api.${{ env.NAMESPACE }}.svc.cluster.local:8000
+
+      - name: Deploy PWA (regular Deployment)
+        run: |
+          export KUBECONFIG=kubeconfig
+          kubectl apply -f k8s/pwa-deployment.yaml
+          kubectl apply -f k8s/pwa-service.yaml
+          kubectl apply -f k8s/ingress.yaml
+
+      - name: Verify deployment
+        run: |
+          export KUBECONFIG=kubeconfig
+          kn service describe ltt-lca-api -n ${{ env.NAMESPACE }}
+          kn service describe ltt-lca-ui -n ${{ env.NAMESPACE }}
+
+          kubectl wait --for=condition=Ready ksvc/ltt-lca-api \
+            --timeout=300s -n ${{ env.NAMESPACE }}
+          kubectl wait --for=condition=Ready ksvc/ltt-lca-ui \
+            --timeout=300s -n ${{ env.NAMESPACE }}
+
+      - name: Output URLs
+        run: |
+          export KUBECONFIG=kubeconfig
+          API_URL=$(kn service describe ltt-lca-api \
+            -n ${{ env.NAMESPACE }} -o jsonpath='{.status.url}')
+          UI_URL=$(kn service describe ltt-lca-ui \
+            -n ${{ env.NAMESPACE }} -o jsonpath='{.status.url}')
+          echo "API deployed: $API_URL"
+          echo "UI deployed: $UI_URL"

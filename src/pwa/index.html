@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RWTH LTT LCA Dashboard</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#00549F">
+    <link rel="icon" href="/icons/icon-192.png">
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; }
+        header { background-color: #00549F; color: white; padding: 10px; text-align: center; }
+        iframe { width: 100%; height: calc(100vh - 50px); border: none; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>RWTH LTT LCA Dashboard</h1>
+    </header>
+    <iframe src="http://localhost:8501"></iframe>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+        }
+    </script>
+</body>
+</html>

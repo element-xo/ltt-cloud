@@ -1,0 +1,15 @@
+# -------------------------------------------------------------------
+# requirements.txt -- pinned versions for reproducible builds.
+# Update with: pip freeze > requirements.txt (inside venv)
+# -------------------------------------------------------------------
+fastapi>=0.135.0
+uvicorn>=0.41.0
+streamlit>=1.55.0
+sqlalchemy>=2.0.48
+alembic>=1.18.0
+psycopg2-binary>=2.9.11
+redis>=7.3.0
+pydantic>=2.12.0
+pydantic-settings>=2.13.0
+requests>=2.32.0
+brightway2
