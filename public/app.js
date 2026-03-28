@@ -1,7 +1,14 @@
 // Environment-aware API endpoint
-const API_BASE_URL = window.location.hostname === 'localhost'
-  ? 'http://localhost:8000'
-  : 'https://lca-backend.onrender.com';  // Will update after Render deployment
+const API_BASE_URL = (function () {
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1') {
+    return 'http://localhost:8000';  // Development
+  }
+  // Production: DigitalOcean backend
+  // INSTRUCTION: Replace xxxx with your actual DigitalOcean app ID
+  // Get URL from: https://cloud.digitalocean.com/apps → your app → Live Domain
+  return 'https://lca-backend-xxxx.ondigitalocean.app';
+})();
 
 const API_URL = API_BASE_URL;
 
