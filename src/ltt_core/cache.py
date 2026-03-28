@@ -1,5 +1,6 @@
 import json
 import hashlib
+from typing import Optional
 
 import redis
 
@@ -20,7 +21,7 @@ def make_lca_key(functional_unit: dict, method: tuple) -> str:
     return hashlib.sha256(data.encode()).hexdigest()
 
 
-def get_cached_lca(key: str) -> dict | None:
+def get_cached_lca(key: str) -> Optional[dict]:
     client = _get_redis_client()
     data = client.get(key)
     return json.loads(data) if data else None

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LTT Cloud</title>
+    <link rel="stylesheet" href="./style.css">
+    <script src="./js/chart.min.js"></script>
+</head>
+
+<body>
+    <header class="app-header">
+        <div class="header-inner">
+            <div class="header-text">
+                <h1>LTT Cloud</h1>
+                <p> &amp; LTT, RWTH Aachen University</p>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="hero-grid">
+            <!-- Form Section -->
+            <div class="hero-card">
+                <h2>Run LCA Experiment</h2>
+                <form id="experimentForm">
+                    <!-- Base Parameters -->
+                    <fieldset class="form-fieldset">
+                        <legend>Scenario Configuration</legend>
+
+                        <div class="form-group">
+                            <label for="functional_unit">Functional Unit:</label>
+                            <select id="functional_unit" name="functional_unit" required>
+                                <option value="">Select a functional unit</option>
+                                <option value="1_kg_dac">1 kg Direct Air Capture</option>
+                                <option value="1_kwh_elec">1 kWh Electricity</option>
+                                <option value="100_km_bev">100 km BEV Transport</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group flex-1">
+                                <label for="tech_scenario">Technology Scenario:</label>
+                                <select id="tech_scenario" name="tech_scenario" required>
+                                    <option value="today">Today</option>
+                                    <option value="future_average">Future Average</option>
+                                    <option value="future_best_case">Future Best Case</option>
+                                </select>
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="sys_scenario">System Scenario:</label>
+                                <select id="sys_scenario" name="sys_scenario" required>
+                                    <option value="current_policy">Current Policy</option>
+                                    <option value="pledges">Pledges</option>
+                                    <option value="paris_2c">Paris 2°C</option>
+                                    <option value="paris_15c">Paris 1.5°C</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="system_boundary">System Boundary:</label>
+                            <select id="system_boundary" name="system_boundary" required>
+                                <option value="cradle_to_grave">Cradle-to-Grave</option>
+                                <option value="cradle_to_gate">Cradle-to-Gate</option>
+                            </select>
+                        </div>
+                    </fieldset>
+
+                    <!-- Common Parameters -->
+                    <fieldset class="form-fieldset">
+                        <legend>Process Parameters</legend>
+
+                        <div class="form-group">
+                            <label for="electricity_mix">Electricity Mix:</label>
+                            <select id="electricity_mix" name="electricity_mix" required>
+                                <option value="coal">Coal</option>
+                                <option value="natural_gas">Natural Gas</option>
+                                <option value="renewable">Renewable</option>
+                                <option value="mix">European Mix</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="dac-efficiency-group">
+                            <label for="dac_efficiency">DAC Efficiency (%):</label>
+                            <input type="number" id="dac_efficiency" name="dac_efficiency" min="30" max="100" step="1"
+                                value="75" required>
+                        </div>
+
+                        <div class="form-group" id="transport-distance-group">
+                            <label for="transport_distance_km">Transport Distance (km):</label>
+                            <input type="number" id="transport_distance_km" name="transport_distance_km" min="0"
+                                step="50" value="300" required>
+                        </div>
+
+                        <div class="form-group" id="reactor-temperature-group">
+                            <label for="reactor_temperature_c">Reactor Temperature (°C):</label>
+                            <input type="number" id="reactor_temperature_c" name="reactor_temperature_c" min="600"
+                                max="900" step="10" value="800" required>
+                        </div>
+                    </fieldset>
+
+                    <!-- BEV-Specific Parameters (conditionally shown) -->
+                    <fieldset class="form-fieldset" id="bev-fieldset" style="display: none;">
+                        <legend>BEV Vehicle Lifecycle</legend>
+
+                        <div class="form-group">
+                            <label for="vehicle_lifetime_km">
+                              Vehicle Lifetime (km)
+                              <small style="color:#888;">(typical: 150,000–250,000 km)</small>
+                            </label>
+                            <input type="number" id="vehicle_lifetime_km" name="vehicle_lifetime_km" min="100000"
+                                step="50000" value="200000">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="production_emissions_kg_co2">
+                              Production Emissions (kg CO₂-eq)
+                              <small style="color:#888;">(typical BEV: 8,000–20,000 kg)</small>
+                            </label>
+                            <input type="number" id="production_emissions_kg_co2" name="production_emissions_kg_co2"
+                                min="0" step="1000" value="20000">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="disposal_emissions_kg_co2">
+                              Disposal Emissions (kg CO₂-eq)
+                              <small style="color:#888;">(typical: 200–800 kg)</small>
+                            </label>
+                            <input type="number" id="disposal_emissions_kg_co2" name="disposal_emissions_kg_co2" min="0"
+                                step="100" value="1000">
+                        </div>
+                    </fieldset>
+
+                    <p
+                      id="status-msg"
+                      style="display:none; color:#555; font-style:italic; margin-top:8px;"
+                    ></p>
+
+                    <button type="button" id="runButton" class="btn-primary">Run Experiment</button>
+                </form>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-card">
+                <h2>Results</h2>
+                <div id="errorBox" class="error-box" style="display:none;"></div>
+                <div id="resultContainer" style="display:none;">
+                    <!-- Tier 1: Climate Primary KPI -->
+                    <div class="tier tier-1">
+                        <h3>Climate Impact (Primary KPI)</h3>
+                        <div class="climate-kpi">
+                            <div class="kpi-value" id="climate-value">—</div>
+                            <div class="kpi-unit">kg CO₂-eq</div>
+                            <div class="kpi-share" id="climate-share">Share of SOS: —</div>
+                        </div>
+                        <div class="sos-bar" id="climate-sos-bar"></div>
+                        <div class="sos-interpretation" id="climate-interpretation"></div>
+                    </div>
+
+                    <!-- Tier 2: Biosphere & Freshwater (Active) -->
+                    <div class="tier tier-2">
+                        <h3>Biosphere & Freshwater Impacts</h3>
+                        <table class="impacts-table">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Value</th>
+                                    <th>Share of SOS</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tier2-tbody">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Tier 3: Land & Biogeochemical (Collapsible) -->
+                    <div class="tier tier-3">
+                        <details>
+                            <summary>Land System Change & Biogeochemical Flows (Click to expand)</summary>
+                            <table class="impacts-table">
+                                <thead>
+                                    <tr>
+                                        <th>Category</th>
+                                        <th>Value</th>
+                                        <th>Share of SOS</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tier3-tbody">
+                                </tbody>
+                            </table>
+                        </details>
+                    </div>
+
+                    <!-- Contribution Breakdown (Climate Only) -->
+                    <div class="contributions-section">
+                        <h3>Climate Impact Contribution Breakdown</h3>
+                        <canvas id="contributionChart"></canvas>
+                        <div id="contributionList"></div>
+                    </div>
+
+                    <!-- Metadata -->
+                    <div class="metadata-section">
+                        <details>
+                            <summary>Experiment Metadata</summary>
+                            <div class="metadata-content">
+                                <p><strong>Experiment ID:</strong> <span id="exp-id"></span></p>
+                                <p><strong>Timestamp:</strong> <span id="exp-timestamp"></span></p>
+                                <p><strong>Brightway Project:</strong> <span id="exp-bw-project"></span></p>
+                                <p><strong>Database:</strong> <span id="exp-bw-database"></span></p>
+                                <p><strong>Impact Method:</strong> <span id="exp-impact-method"></span></p>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+
+                <div id="noResultBox" class="no-result-box">Ready to run experiment</div>
+            </div>
+        </div>
+
+        <!-- Quick-Test Cards -->
+        <div class="impact-cards">
+            <div class="impact-card scenario-card" data-functional-unit="1_kg_dac" data-tech-scenario="future_best_case"
+                data-sys-scenario="paris_15c" data-electricity-mix="renewable" data-dac-efficiency="85"
+                data-transport-distance-km="200" data-reactor-temperature-c="850"
+                data-system-boundary="cradle_to_grave">
+                <h3>🌱 Clean Future Scenario</h3>
+                <p>Best-case tech, Paris 1.5°C, renewable energy, short transport</p>
+            </div>
+            <div class="impact-card scenario-card" data-functional-unit="1_kg_dac" data-tech-scenario="today"
+                data-sys-scenario="current_policy" data-electricity-mix="mix" data-dac-efficiency="75"
+                data-transport-distance-km="500" data-reactor-temperature-c="800"
+                data-system-boundary="cradle_to_grave">
+                <h3>📊 Today's Baseline</h3>
+                <p>Current technology, European grid, standard assumptions</p>
+            </div>
+            <div class="impact-card scenario-card" data-functional-unit="100_km_bev" data-tech-scenario="future_average"
+                data-sys-scenario="pledges" data-electricity-mix="mix" data-transport-distance-km="0"
+                data-reactor-temperature-c="0" data-system-boundary="cradle_to_grave">
+                <h3>🚗 BEV Transport (100 km)</h3>
+                <p>Future average tech, current pledges pathway</p>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
