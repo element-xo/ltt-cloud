@@ -1,0 +1,23 @@
+name: lca-backend
+region: fra
+services:
+  - name: api
+    source_dir: /
+    github:
+      repo: omer3kale/ltt-cloud
+      branch: main
+      deploy_on_push: true
+    run_command: uvicorn mock_api:app --host 0.0.0.0 --port $PORT
+    build_command: pip install -r requirements.txt
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    envs:
+      - key: ENVIRONMENT
+        value: production
+      - key: PYTHONUNBUFFERED
+        value: "1"
+    health_check:
+      http_path: /
+      initial_delay_seconds: 10
+      period_seconds: 30
