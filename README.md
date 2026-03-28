@@ -20,15 +20,6 @@ Cloud-ready Python monorepo for Brightway-based LCA dashboards at RWTH Aachen (C
  Docker + docker-compose for local dev
 // Helm/Knative manifests for RWTH Kubernetes
 
-***Local Development***
-
-1. Install dependencies: <pip install -e .>
-2. Run <docker-compose up> to start services.
-3. Access:
-   - PWA: http://localhost:8080
-   - UI: http://localhost:8501
-   - API: http://localhost:8000
-
 ***Structure***
 
 See src/ for code, k8s/ for Kubernetes manifests, docker/ for containers.
